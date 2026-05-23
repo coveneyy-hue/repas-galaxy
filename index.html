@@ -661,12 +661,12 @@
         <div class="label">entrées</div>
       </div>
       <div class="mini-stat">
-        <div class="value" id="statCalories">0</div>
-        <div class="label">calories</div>
+        <div class="value" id="statRated">0</div>
+        <div class="label">notées</div>
       </div>
       <div class="mini-stat">
-        <div class="value" id="statAvg">0</div>
-        <div class="label">moyenne</div>
+        <div class="value" id="statAvgRating">N/D</div>
+        <div class="label">note moy.</div>
       </div>
     </section>
 
@@ -728,12 +728,7 @@
               Catégorie
               <select id="entryCategory" required></select>
             </label>
-            <label>
-              Calories
-              <input id="entryCalories" type="number" min="0" step="1" />
-              <span class="hint">Facultatif. Prérempli à partir du repas, mais peut être vidé.</span>
-            </label>
-          </div>
+</div>
 
           <label>
             Note sur 10
@@ -806,19 +801,7 @@
               <select id="filterMeal"></select>
             </label>
           </div>
-
-          <div class="two-col form-grid">
-            <label>
-              Calories minimum
-              <input id="filterCalMin" type="number" min="0" step="1" />
-            </label>
-            <label>
-              Calories maximum
-              <input id="filterCalMax" type="number" min="0" step="1" />
-            </label>
-          </div>
-
-          <label>
+<label>
             Notes contenant
             <input id="filterNotes" type="search" placeholder="Ex. resto, maison..." />
           </label>
@@ -884,17 +867,10 @@
             <label>
               Description
               <textarea id="mealDescription" placeholder="Ex. sauce tomate, boeuf haché, pâtes blanches, parmesan..."></textarea>
+            </label>            <label>
+              Catégorie par défaut
+              <select id="mealCategory" required></select>
             </label>
-            <div class="two-col form-grid">
-              <label>
-                Catégorie par défaut
-                <select id="mealCategory" required></select>
-              </label>
-              <label>
-                Calories par défaut
-                <input id="mealCalories" type="number" min="0" step="1" required />
-              </label>
-            </div>
             <div class="two-col form-grid">
               <label>
                 Favori
@@ -992,8 +968,6 @@
         personId: "all",
         mealId: "all",
         categoryId: "all",
-        calMin: "",
-        calMax: "",
         notes: "",
         shared: "all",
         search: ""
@@ -1207,7 +1181,6 @@
             nom: "Spaghetti sauce viande",
             description: "Pâtes avec sauce tomate et viande.",
             categorieId: "cat_principal",
-            caloriesDefaut: 720,
             actif: true,
             favori: true,
             tags: ["maison"],
@@ -1219,7 +1192,6 @@
             nom: "Yogourt et fruits",
             description: "Yogourt avec fruits.",
             categorieId: "cat_collation",
-            caloriesDefaut: 220,
             actif: true,
             favori: false,
             tags: ["rapide"],
@@ -1318,8 +1290,7 @@
                   Inscrit : ${escapeHtml(formatDateTime(entry.dateInscription))}
                 </div>
               </div>
-              ${entry.calories !== undefined && entry.calories !== null && entry.calories !== "" ? `<span class="pill accent">${numberFmt(entry.calories)} cal</span>` : `<span class="pill">Calories non saisies</span>`}
-            </div>
+</div>
 
             <div class="entry-kpis">
               <span class="pill">${escapeHtml(category?.nom || "Catégorie inconnue")}</span>
@@ -1386,15 +1357,7 @@
         if (f.personId !== "all" && !(entry.personneIds || []).includes(f.personId)) return false;
         if (f.mealId !== "all" && entry.repasId !== f.mealId) return false;
         if (f.categoryId !== "all" && entry.categorieId !== f.categoryId) return false;
-
-        if (f.calMin !== "" || f.calMax !== "") {
-          const hasCalories = entry.calories !== undefined && entry.calories !== null && entry.calories !== "" && Number.isFinite(Number(entry.calories));
-          if (!hasCalories) return false;
-          if (f.calMin !== "" && Number(entry.calories) < Number(f.calMin)) return false;
-          if (f.calMax !== "" && Number(entry.calories) > Number(f.calMax)) return false;
-        }
-
-        if (f.notes && !normalize(entry.notes).includes(normalize(f.notes))) return false;
+if (f.notes && !normalize(entry.notes).includes(normalize(f.notes))) return false;
 
         if (f.shared === "shared" && (entry.personneIds || []).length < 2) return false;
         if (f.shared === "solo" && (entry.personneIds || []).length !== 1) return false;
@@ -1407,18 +1370,19 @@
 
     function renderStats(entries) {
       const totalEntries = entries.length;
-      const calorieEntries = entries.filter(entry =>
-        entry.calories !== undefined &&
-        entry.calories !== null &&
-        entry.calories !== "" &&
-        Number.isFinite(Number(entry.calories))
+      const ratedEntries = entries.filter(entry =>
+        entry.noteSur10 !== undefined &&
+        entry.noteSur10 !== null &&
+        entry.noteSur10 !== "" &&
+        Number.isFinite(Number(entry.noteSur10))
       );
-      const totalCalories = calorieEntries.reduce((sum, entry) => sum + Number(entry.calories), 0);
-      const avgCalories = calorieEntries.length ? Math.round(totalCalories / calorieEntries.length) : 0;
+      const avgRating = ratedEntries.length
+        ? ratedEntries.reduce((sum, entry) => sum + Number(entry.noteSur10), 0) / ratedEntries.length
+        : null;
 
       $("statEntries").textContent = numberFmt(totalEntries);
-      $("statCalories").textContent = calorieEntries.length ? numberFmt(totalCalories) : "N/D";
-      $("statAvg").textContent = calorieEntries.length ? numberFmt(avgCalories) : "N/D";
+      $("statRated").textContent = numberFmt(ratedEntries.length);
+      $("statAvgRating").textContent = avgRating === null ? "N/D" : `${formatRating(avgRating)}/10`;
     }
 
     function renderFilterChips() {
@@ -1430,8 +1394,6 @@
       if (f.personId !== "all") chips.push(`Personne : ${getPerson(f.personId)?.nom || "Inconnue"}`);
       if (f.mealId !== "all") chips.push(`Repas : ${getMeal(f.mealId)?.nom || "Inconnu"}`);
       if (f.categoryId !== "all") chips.push(`Catégorie : ${getCategory(f.categoryId)?.nom || "Inconnue"}`);
-      if (f.calMin !== "") chips.push(`Calories min : ${f.calMin}`);
-      if (f.calMax !== "") chips.push(`Calories max : ${f.calMax}`);
       if (f.notes) chips.push(`Notes : ${f.notes}`);
       if (f.shared !== "all") chips.push(f.shared === "shared" ? "Repas partagés" : "Repas solo");
 
@@ -1478,30 +1440,14 @@
       if (!meal) return;
 
       if (force || !$("entryCategory").value) $("entryCategory").value = meal.categorieId || "";
-      const portions = Number($("entryPortions").value || 1);
-      const calculatedCalories = meal.caloriesDefaut === null || meal.caloriesDefaut === undefined || meal.caloriesDefaut === ""
-        ? ""
-        : Math.round(Number(meal.caloriesDefaut || 0) * portions);
-      if (force || !$("entryCalories").value) $("entryCalories").value = calculatedCalories;
-    }
-
-    function recalcCaloriesFromPortions() {
-      const meal = getMeal($("entryMeal").value);
-      if (!meal) return;
-      const portions = Number($("entryPortions").value || 1);
-      $("entryCalories").value = meal.caloriesDefaut === null || meal.caloriesDefaut === undefined || meal.caloriesDefaut === ""
-        ? ""
-        : Math.round(Number(meal.caloriesDefaut || 0) * portions);
-    }
+}
 
     async function saveEntry() {
       const mealId = $("entryMeal").value;
       const categoryId = $("entryCategory").value;
       const selectedPeople = [...document.querySelectorAll("#entryPeople input[type='checkbox']:checked")].map(cb => cb.value);
       const mealDateValue = $("entryMealDate").value;
-      const caloriesRaw = $("entryCalories").value;
-      const calories = caloriesRaw === "" ? null : Number(caloriesRaw);
-      const portions = Number($("entryPortions").value || 1);
+const portions = Number($("entryPortions").value || 1);
       const ratingRaw = $("entryRating").value;
       const noteSur10 = ratingRaw === "" ? null : Number(ratingRaw);
 
@@ -1509,8 +1455,7 @@
       if (!categoryId) return toast("La catégorie est obligatoire.");
       if (!mealDateValue) return toast("La date du repas est obligatoire.");
       if (selectedPeople.length === 0) return toast("Sélectionne au moins une personne.");
-      if (calories !== null && (!Number.isFinite(calories) || calories < 0)) return toast("Les calories doivent être un nombre valide.");
-      if (!Number.isFinite(portions) || portions <= 0) return toast("Les portions doivent être supérieures à zéro.");
+if (!Number.isFinite(portions) || portions <= 0) return toast("Les portions doivent être supérieures à zéro.");
       if (
         noteSur10 !== null &&
         (
@@ -1532,7 +1477,6 @@
         repasId: mealId,
         personneIds: selectedPeople,
         categorieId: categoryId,
-        calories,
         portions,
         noteSur10,
         notes: $("entryNotes").value.trim()
@@ -1556,7 +1500,6 @@
       $("entryMeal").value = entry.repasId;
       $("entryMealDate").value = localDateTimeValue(new Date(entry.dateRepas));
       $("entryCategory").value = entry.categorieId;
-      $("entryCalories").value = entry.calories ?? "";
       $("entryPortions").value = entry.portions || 1;
       $("entryRating").value = entry.noteSur10 ?? "";
       $("entryNotes").value = entry.notes || "";
@@ -1625,7 +1568,6 @@
         nom: $("mealName").value.trim(),
         description: $("mealDescription").value.trim(),
         categorieId: $("mealCategory").value,
-        caloriesDefaut: Number($("mealCalories").value || 0),
         actif: $("mealActive").value === "true",
         favori: $("mealFavorite").value === "true",
         tags: $("mealTags").value.split(",").map(t => t.trim()).filter(Boolean),
@@ -1636,7 +1578,6 @@
 
       if (!item.nom) return toast("Le nom du repas est obligatoire.");
       if (!item.categorieId) return toast("La catégorie est obligatoire.");
-      if (!Number.isFinite(item.caloriesDefaut) || item.caloriesDefaut < 0) return toast("Les calories doivent être valides.");
 
       await put(stores.meals, item);
       $("mealForm").reset();
@@ -1686,7 +1627,7 @@
             <div>
               <div class="manage-title">${escapeHtml(meal.nom)}${meal.favori ? " ★" : ""}</div>
               <div class="manage-sub">
-                ${escapeHtml(category?.nom || "Catégorie inconnue")} · ${numberFmt(meal.caloriesDefaut)} cal · ${meal.actif === false ? "Inactif" : "Actif"}<br />
+                ${escapeHtml(category?.nom || "Catégorie inconnue")} ·${meal.actif === false ? "Inactif" : "Actif"}<br />
                 ${meal.description ? escapeHtml(meal.description) + "<br />" : ""}
                 ${tags ? "Tags : " + escapeHtml(tags) : ""}
               </div>
@@ -1729,7 +1670,6 @@
       $("mealName").value = item.nom;
       $("mealDescription").value = item.description || "";
       $("mealCategory").value = item.categorieId;
-      $("mealCalories").value = item.caloriesDefaut || 0;
       $("mealFavorite").value = String(!!item.favori);
       $("mealActive").value = String(item.actif !== false);
       $("mealTags").value = (item.tags || []).join(", ");
@@ -1752,8 +1692,6 @@
       $("filterPerson").value = state.filters.personId;
       $("filterMeal").value = state.filters.mealId;
       $("filterCategory").value = state.filters.categoryId;
-      $("filterCalMin").value = state.filters.calMin;
-      $("filterCalMax").value = state.filters.calMax;
       $("filterNotes").value = state.filters.notes;
       $("filterShared").value = state.filters.shared;
       toggleCustomPeriod();
@@ -1766,8 +1704,6 @@
       state.filters.personId = $("filterPerson").value;
       state.filters.mealId = $("filterMeal").value;
       state.filters.categoryId = $("filterCategory").value;
-      state.filters.calMin = $("filterCalMin").value;
-      state.filters.calMax = $("filterCalMax").value;
       state.filters.notes = $("filterNotes").value.trim();
       state.filters.shared = $("filterShared").value;
       renderEntries();
@@ -1782,8 +1718,6 @@
         personId: "all",
         mealId: "all",
         categoryId: "all",
-        calMin: "",
-        calMax: "",
         notes: "",
         shared: "all",
         search: ""
@@ -1807,16 +1741,7 @@
         content.innerHTML = `<div class="empty">Aucune donnée disponible pour les tendances.</div>`;
         return;
       }
-
-      const calorieEntries = entries.filter(e =>
-        e.calories !== undefined &&
-        e.calories !== null &&
-        e.calories !== "" &&
-        Number.isFinite(Number(e.calories))
-      );
-      const totalCalories = calorieEntries.reduce((sum, e) => sum + Number(e.calories), 0);
-      const avgCalories = calorieEntries.length ? Math.round(totalCalories / calorieEntries.length) : null;
-      const ratedEntries = entries.filter(e => e.noteSur10 !== undefined && e.noteSur10 !== null && e.noteSur10 !== "" && Number.isFinite(Number(e.noteSur10)));
+const ratedEntries = entries.filter(e => e.noteSur10 !== undefined && e.noteSur10 !== null && e.noteSur10 !== "" && Number.isFinite(Number(e.noteSur10)));
       const avgRating = ratedEntries.length
         ? ratedEntries.reduce((sum, e) => sum + Number(e.noteSur10), 0) / ratedEntries.length
         : null;
@@ -1861,7 +1786,6 @@
         ${trendCard("Période analysée", `${entries.length} entrée(s)`, `Selon les filtres actuellement appliqués.`)}
         ${trendCard("Repas le plus fréquent", getMeal(topMeal?.key)?.nom || "Inconnu", `${topMeal?.count || 0} fois`)}
         ${trendCard("Catégorie dominante", getCategory(topCategory?.key)?.nom || "Inconnue", `${topCategory?.count || 0} entrée(s)`)}
-        ${trendCard("Calories moyennes", avgCalories === null ? "N/D" : `${numberFmt(avgCalories)} cal`, calorieEntries.length ? `${numberFmt(totalCalories)} calories au total sur ${calorieEntries.length} entrée(s)` : "Aucune calorie saisie")}
         ${trendCard("Note moyenne", avgRating === null ? "Aucune note" : `${formatRating(avgRating)}/10`, `${ratedEntries.length} entrée(s) notée(s)`)}
         ${trendCard("Repas le mieux noté", bestRatedEntry ? (getMeal(bestRatedEntry.repasId)?.nom || "Repas inconnu") : "Aucun", bestRatedEntry ? `${formatRating(bestRatedEntry.noteSur10)}/10` : "Aucune entrée notée")}
         ${trendCard("Jour le plus actif", dayNames[Number(topDay?.key)] || "Inconnu", `${topDay?.count || 0} entrée(s)`)}
@@ -1987,7 +1911,6 @@
       $("btnAddEntry").addEventListener("click", newEntry);
       $("btnSaveEntry").addEventListener("click", saveEntry);
       $("entryMeal").addEventListener("change", () => applyMealDefaults($("entryMeal").value, true));
-      $("entryPortions").addEventListener("change", recalcCaloriesFromPortions);
 
       $("btnFilters").addEventListener("click", () => {
         fillSelects();

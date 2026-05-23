@@ -1,21 +1,24 @@
-# Correction PWA Repas
+# Correction PWA Repas sans calories
 
-Fichiers consolidés à téléverser dans GitHub.
+Fichiers à téléverser dans GitHub.
 
-## Contenu
+## Changements
 
-- Note sur 10 dans le formulaire
-- Notes acceptées par incrément de 0.5
-- Calories optionnelles
-- Service worker en cache v6
-- Icônes attendues à la racine du dépôt
+- Retrait du champ Calories dans la saisie d'une entrée
+- Retrait des calories dans les cartes de repas
+- Retrait des filtres minimum / maximum de calories
+- Retrait des statistiques de calories
+- Retrait des tendances de calories
+- Retrait des calories par défaut dans la gestion des repas
+- Conservation de la note sur 10 avec incréments de 0.5
+- Service worker en cache v7
 
-## Après upload
+## Vérification après upload
 
-Vérifier que GitHub contient bien le texte suivant dans index.html :
+Dans GitHub, ouvrir `index.html` et rechercher :
 
 ```text
-Note sur 10
+Calories
 ```
 
-Puis ouvrir l'URL GitHub Pages et vider les données du site si l'ancienne version reste en cache.
+Il ne devrait plus y avoir de libellé fonctionnel lié aux calories dans l'interface.
