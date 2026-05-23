@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101827" />
   <meta name="description" content="PWA locale pour recenser les repas mangés par plusieurs personnes." />
   <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <title>Repas</title>
   <style>
     :root {
@@ -730,8 +730,8 @@
             </label>
             <label>
               Calories
-              <input id="entryCalories" type="number" min="0" step="1" required />
-              <span class="hint">Prérempli à partir du repas. Modifiable pour l'entrée réelle.</span>
+              <input id="entryCalories" type="number" min="0" step="1" />
+              <span class="hint">Facultatif. Prérempli à partir du repas, mais peut être vidé.</span>
             </label>
           </div>
 
@@ -1318,7 +1318,7 @@
                   Inscrit : ${escapeHtml(formatDateTime(entry.dateInscription))}
                 </div>
               </div>
-              <span class="pill accent">${numberFmt(entry.calories)} cal</span>
+              ${entry.calories !== undefined && entry.calories !== null && entry.calories !== "" ? `<span class="pill accent">${numberFmt(entry.calories)} cal</span>` : `<span class="pill">Calories non saisies</span>`}
             </div>
 
             <div class="entry-kpis">
@@ -1387,8 +1387,12 @@
         if (f.mealId !== "all" && entry.repasId !== f.mealId) return false;
         if (f.categoryId !== "all" && entry.categorieId !== f.categoryId) return false;
 
-        if (f.calMin !== "" && Number(entry.calories) < Number(f.calMin)) return false;
-        if (f.calMax !== "" && Number(entry.calories) > Number(f.calMax)) return false;
+        if (f.calMin !== "" || f.calMax !== "") {
+          const hasCalories = entry.calories !== undefined && entry.calories !== null && entry.calories !== "" && Number.isFinite(Number(entry.calories));
+          if (!hasCalories) return false;
+          if (f.calMin !== "" && Number(entry.calories) < Number(f.calMin)) return false;
+          if (f.calMax !== "" && Number(entry.calories) > Number(f.calMax)) return false;
+        }
 
         if (f.notes && !normalize(entry.notes).includes(normalize(f.notes))) return false;
 
@@ -1403,12 +1407,18 @@
 
     function renderStats(entries) {
       const totalEntries = entries.length;
-      const totalCalories = entries.reduce((sum, entry) => sum + Number(entry.calories || 0), 0);
-      const avgCalories = totalEntries ? Math.round(totalCalories / totalEntries) : 0;
+      const calorieEntries = entries.filter(entry =>
+        entry.calories !== undefined &&
+        entry.calories !== null &&
+        entry.calories !== "" &&
+        Number.isFinite(Number(entry.calories))
+      );
+      const totalCalories = calorieEntries.reduce((sum, entry) => sum + Number(entry.calories), 0);
+      const avgCalories = calorieEntries.length ? Math.round(totalCalories / calorieEntries.length) : 0;
 
       $("statEntries").textContent = numberFmt(totalEntries);
-      $("statCalories").textContent = numberFmt(totalCalories);
-      $("statAvg").textContent = numberFmt(avgCalories);
+      $("statCalories").textContent = calorieEntries.length ? numberFmt(totalCalories) : "N/D";
+      $("statAvg").textContent = calorieEntries.length ? numberFmt(avgCalories) : "N/D";
     }
 
     function renderFilterChips() {
@@ -1469,7 +1479,9 @@
 
       if (force || !$("entryCategory").value) $("entryCategory").value = meal.categorieId || "";
       const portions = Number($("entryPortions").value || 1);
-      const calculatedCalories = Math.round(Number(meal.caloriesDefaut || 0) * portions);
+      const calculatedCalories = meal.caloriesDefaut === null || meal.caloriesDefaut === undefined || meal.caloriesDefaut === ""
+        ? ""
+        : Math.round(Number(meal.caloriesDefaut || 0) * portions);
       if (force || !$("entryCalories").value) $("entryCalories").value = calculatedCalories;
     }
 
@@ -1477,7 +1489,9 @@
       const meal = getMeal($("entryMeal").value);
       if (!meal) return;
       const portions = Number($("entryPortions").value || 1);
-      $("entryCalories").value = Math.round(Number(meal.caloriesDefaut || 0) * portions);
+      $("entryCalories").value = meal.caloriesDefaut === null || meal.caloriesDefaut === undefined || meal.caloriesDefaut === ""
+        ? ""
+        : Math.round(Number(meal.caloriesDefaut || 0) * portions);
     }
 
     async function saveEntry() {
@@ -1485,7 +1499,8 @@
       const categoryId = $("entryCategory").value;
       const selectedPeople = [...document.querySelectorAll("#entryPeople input[type='checkbox']:checked")].map(cb => cb.value);
       const mealDateValue = $("entryMealDate").value;
-      const calories = Number($("entryCalories").value);
+      const caloriesRaw = $("entryCalories").value;
+      const calories = caloriesRaw === "" ? null : Number(caloriesRaw);
       const portions = Number($("entryPortions").value || 1);
       const ratingRaw = $("entryRating").value;
       const noteSur10 = ratingRaw === "" ? null : Number(ratingRaw);
@@ -1494,7 +1509,7 @@
       if (!categoryId) return toast("La catégorie est obligatoire.");
       if (!mealDateValue) return toast("La date du repas est obligatoire.");
       if (selectedPeople.length === 0) return toast("Sélectionne au moins une personne.");
-      if (!Number.isFinite(calories) || calories < 0) return toast("Les calories doivent être un nombre valide.");
+      if (calories !== null && (!Number.isFinite(calories) || calories < 0)) return toast("Les calories doivent être un nombre valide.");
       if (!Number.isFinite(portions) || portions <= 0) return toast("Les portions doivent être supérieures à zéro.");
       if (
         noteSur10 !== null &&
@@ -1541,7 +1556,7 @@
       $("entryMeal").value = entry.repasId;
       $("entryMealDate").value = localDateTimeValue(new Date(entry.dateRepas));
       $("entryCategory").value = entry.categorieId;
-      $("entryCalories").value = entry.calories;
+      $("entryCalories").value = entry.calories ?? "";
       $("entryPortions").value = entry.portions || 1;
       $("entryRating").value = entry.noteSur10 ?? "";
       $("entryNotes").value = entry.notes || "";
@@ -1793,8 +1808,14 @@
         return;
       }
 
-      const totalCalories = entries.reduce((sum, e) => sum + Number(e.calories || 0), 0);
-      const avgCalories = Math.round(totalCalories / entries.length);
+      const calorieEntries = entries.filter(e =>
+        e.calories !== undefined &&
+        e.calories !== null &&
+        e.calories !== "" &&
+        Number.isFinite(Number(e.calories))
+      );
+      const totalCalories = calorieEntries.reduce((sum, e) => sum + Number(e.calories), 0);
+      const avgCalories = calorieEntries.length ? Math.round(totalCalories / calorieEntries.length) : null;
       const ratedEntries = entries.filter(e => e.noteSur10 !== undefined && e.noteSur10 !== null && e.noteSur10 !== "" && Number.isFinite(Number(e.noteSur10)));
       const avgRating = ratedEntries.length
         ? ratedEntries.reduce((sum, e) => sum + Number(e.noteSur10), 0) / ratedEntries.length
@@ -1840,7 +1861,7 @@
         ${trendCard("Période analysée", `${entries.length} entrée(s)`, `Selon les filtres actuellement appliqués.`)}
         ${trendCard("Repas le plus fréquent", getMeal(topMeal?.key)?.nom || "Inconnu", `${topMeal?.count || 0} fois`)}
         ${trendCard("Catégorie dominante", getCategory(topCategory?.key)?.nom || "Inconnue", `${topCategory?.count || 0} entrée(s)`)}
-        ${trendCard("Calories moyennes", `${numberFmt(avgCalories)} cal`, `${numberFmt(totalCalories)} calories au total`)}
+        ${trendCard("Calories moyennes", avgCalories === null ? "N/D" : `${numberFmt(avgCalories)} cal`, calorieEntries.length ? `${numberFmt(totalCalories)} calories au total sur ${calorieEntries.length} entrée(s)` : "Aucune calorie saisie")}
         ${trendCard("Note moyenne", avgRating === null ? "Aucune note" : `${formatRating(avgRating)}/10`, `${ratedEntries.length} entrée(s) notée(s)`)}
         ${trendCard("Repas le mieux noté", bestRatedEntry ? (getMeal(bestRatedEntry.repasId)?.nom || "Repas inconnu") : "Aucun", bestRatedEntry ? `${formatRating(bestRatedEntry.noteSur10)}/10` : "Aucune entrée notée")}
         ${trendCard("Jour le plus actif", dayNames[Number(topDay?.key)] || "Inconnu", `${topDay?.count || 0} entrée(s)`)}
