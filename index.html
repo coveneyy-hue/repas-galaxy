@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#101827" />
+  <meta name="description" content="PWA locale pour recenser les repas mangés par plusieurs personnes." />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Repas</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #101827;
+      --card: #151f32;
+      --card-2: #1b2940;
+      --text: #eef4ff;
+      --muted: #9fb0c7;
+      --line: rgba(255,255,255,0.09);
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --danger: #fb7185;
+      --warning: #fbbf24;
+      --shadow: 0 16px 40px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --tap: 48px;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,0.17), transparent 34rem),
+        radial-gradient(circle at top right, rgba(34,197,94,0.10), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 16px;
+    }
+
+    body {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px 14px 92px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      margin: -16px -14px 12px;
+      padding: 14px;
+      backdrop-filter: blur(18px);
+      background: rgba(11,16,32,0.82);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 1.38rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    .brand-subtitle {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .search-input {
+      width: 100%;
+      min-height: var(--tap);
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.055);
+      color: var(--text);
+      padding: 0 16px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: rgba(56,189,248,0.62);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+    }
+
+    .icon-btn, .primary-btn, .ghost-btn, .danger-btn, .small-btn {
+      min-height: var(--tap);
+      border-radius: 999px;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+
+    .icon-btn:active, .primary-btn:active, .ghost-btn:active, .danger-btn:active, .small-btn:active {
+      transform: scale(0.98);
+    }
+
+    .icon-btn {
+      width: var(--tap);
+      background: rgba(255,255,255,0.065);
+      border: 1px solid var(--line);
+    }
+
+    .primary-btn {
+      padding: 0 18px;
+      background: linear-gradient(135deg, var(--accent), #2563eb);
+      font-weight: 800;
+      box-shadow: 0 10px 28px rgba(56,189,248,0.20);
+    }
+
+    .ghost-btn {
+      padding: 0 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--line);
+      color: var(--text);
+    }
+
+    .danger-btn {
+      padding: 0 16px;
+      background: rgba(251,113,133,0.12);
+      border: 1px solid rgba(251,113,133,0.30);
+      color: #fecdd3;
+    }
+
+    .small-btn {
+      min-height: 36px;
+      padding: 0 12px;
+      font-size: 0.88rem;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--line);
+    }
+
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .mini-stat {
+      background: rgba(255,255,255,0.055);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 10px 11px;
+      min-width: 0;
+    }
+
+    .mini-stat .value {
+      font-weight: 850;
+      font-size: 1.08rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mini-stat .label {
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    .filter-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      padding: 7px 10px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .chip.active {
+      color: #dff7ff;
+      border-color: rgba(56,189,248,0.35);
+      background: rgba(56,189,248,0.12);
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .entry-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.035));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    }
+
+    .entry-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .entry-title {
+      font-size: 1.05rem;
+      font-weight: 850;
+      line-height: 1.2;
+      margin: 0;
+    }
+
+    .entry-meta {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: 5px;
+      line-height: 1.35;
+    }
+
+    .entry-kpis {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.065);
+      border: 1px solid var(--line);
+      padding: 7px 9px;
+      font-size: 0.83rem;
+      color: #dce9f8;
+    }
+
+    .pill.accent {
+      background: rgba(56,189,248,0.12);
+      border-color: rgba(56,189,248,0.24);
+    }
+
+    .pill.success {
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.24);
+    }
+
+    .entry-notes {
+      color: #cbd7e8;
+      margin-top: 10px;
+      font-size: 0.92rem;
+      line-height: 1.38;
+    }
+
+    .entry-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 42px 18px;
+      color: var(--muted);
+      border: 1px dashed rgba(255,255,255,0.14);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.035);
+    }
+
+    .fab-bar {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      z-index: 40;
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 999px;
+      background: rgba(16,24,39,0.92);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      max-width: calc(100vw - 18px);
+      overflow-x: auto;
+    }
+
+    .fab-bar .icon-btn.primary-round {
+      background: linear-gradient(135deg, var(--accent-2), #16a34a);
+      border-color: rgba(34,197,94,0.35);
+      color: white;
+      font-weight: 900;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: none;
+      background: rgba(0,0,0,0.62);
+      padding: 14px;
+      overflow-y: auto;
+    }
+
+    .modal-backdrop.open {
+      display: block;
+    }
+
+    .modal {
+      width: min(740px, 100%);
+      margin: 22px auto;
+      background: #111a2b;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(17,26,43,0.96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(16px);
+    }
+
+    .modal-title {
+      flex: 1;
+      font-size: 1.1rem;
+      font-weight: 850;
+    }
+
+    .modal-body {
+      padding: 16px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px 16px 16px;
+      border-top: 1px solid var(--line);
+      background: rgba(255,255,255,0.025);
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 13px;
+    }
+
+    .two-col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: #dce9f8;
+      font-weight: 700;
+      font-size: 0.91rem;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      min-height: 46px;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(56,189,248,0.62);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+    }
+
+    select option {
+      background: #101827;
+      color: white;
+    }
+
+    .checkbox-list {
+      display: grid;
+      gap: 8px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 38px;
+      color: #dce9f8;
+    }
+
+    .check-row input {
+      width: 20px;
+      min-height: 20px;
+      accent-color: var(--accent);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+
+    .tab {
+      white-space: nowrap;
+      min-height: 40px;
+      padding: 0 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .tab.active {
+      color: white;
+      border-color: rgba(56,189,248,0.4);
+      background: rgba(56,189,248,0.14);
+    }
+
+    .manage-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .manage-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+      background: rgba(255,255,255,0.045);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .manage-title {
+      font-weight: 850;
+    }
+
+    .manage-sub {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    .trend-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .trend-card {
+      background: rgba(255,255,255,0.045);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .trend-title {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+    }
+
+    .trend-value {
+      font-size: 1.2rem;
+      font-weight: 900;
+      line-height: 1.2;
+    }
+
+    .trend-detail {
+      color: #cbd7e8;
+      font-size: 0.88rem;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(88px + env(safe-area-inset-bottom));
+      transform: translateX(-50%) translateY(12px);
+      z-index: 90;
+      background: rgba(17,26,43,0.96);
+      border: 1px solid var(--line);
+      color: white;
+      border-radius: 999px;
+      padding: 11px 15px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .16s ease, transform .16s ease;
+      max-width: calc(100vw - 26px);
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--line);
+      margin: 14px 0;
+    }
+
+    .danger-text {
+      color: #fecdd3;
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .topbar {
+        margin-left: -12px;
+        margin-right: -12px;
+      }
+
+      .stats-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      .brand-title {
+        font-size: 1.24rem;
+      }
+
+      .entry-head {
+        grid-template-columns: 1fr;
+      }
+
+      .entry-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .modal {
+        margin: 0 auto;
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="topbar-row">
+        <div class="brand">
+          <div class="brand-title">Repas</div>
+          <div class="brand-subtitle" id="subtitle">Historique local sur cet appareil</div>
+        </div>
+        <button class="icon-btn" id="btnInstall" title="Installer" aria-label="Installer l'application">
+          <span data-icon="download"></span>
+        </button>
+      </div>
+      <div class="search-row">
+        <input class="search-input" id="searchInput" type="search" placeholder="Rechercher repas, personne, note..." />
+        <button class="icon-btn" id="btnClearSearch" title="Effacer la recherche" aria-label="Effacer la recherche">
+          <span data-icon="x"></span>
+        </button>
+      </div>
+    </header>
+
+    <section class="stats-strip" aria-label="Résumé">
+      <div class="mini-stat">
+        <div class="value" id="statEntries">0</div>
+        <div class="label">entrées</div>
+      </div>
+      <div class="mini-stat">
+        <div class="value" id="statCalories">0</div>
+        <div class="label">calories</div>
+      </div>
+      <div class="mini-stat">
+        <div class="value" id="statAvg">0</div>
+        <div class="label">moyenne</div>
+      </div>
+    </section>
+
+    <section class="filter-chip-row" id="filterChips"></section>
+
+    <section class="list" id="entryList"></section>
+  </main>
+
+  <nav class="fab-bar" aria-label="Actions principales">
+    <button class="icon-btn primary-round" id="btnAddEntry" title="Ajouter" aria-label="Ajouter une entrée">
+      <span data-icon="plus"></span>
+    </button>
+    <button class="icon-btn" id="btnFilters" title="Filtres" aria-label="Filtres">
+      <span data-icon="filter"></span>
+    </button>
+    <button class="icon-btn" id="btnTrends" title="Tendances" aria-label="Tendances">
+      <span data-icon="chart"></span>
+    </button>
+    <button class="icon-btn" id="btnBackup" title="Backup" aria-label="Backup">
+      <span data-icon="backup"></span>
+    </button>
+    <button class="icon-btn" id="btnRestore" title="Restore" aria-label="Restore">
+      <span data-icon="restore"></span>
+    </button>
+    <button class="icon-btn" id="btnManage" title="Paramètres" aria-label="Paramètres">
+      <span data-icon="settings"></span>
+    </button>
+  </nav>
+
+  <input type="file" id="restoreFile" class="hidden" accept="application/json,.json" />
+
+  <div class="modal-backdrop" id="entryModal">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="entryModalTitle">
+      <div class="modal-header">
+        <div class="modal-title" id="entryModalTitle">Ajouter une entrée</div>
+        <button class="icon-btn" data-close="entryModal" aria-label="Fermer"><span data-icon="x"></span></button>
+      </div>
+      <div class="modal-body">
+        <form class="form-grid" id="entryForm">
+          <input type="hidden" id="entryId" />
+          <label>
+            Repas
+            <select id="entryMeal" required></select>
+          </label>
+
+          <div class="two-col form-grid">
+            <label>
+              Date et heure du repas
+              <input id="entryMealDate" type="datetime-local" required />
+            </label>
+            <label>
+              Portions
+              <input id="entryPortions" type="number" min="0.05" step="0.05" value="1" />
+            </label>
+          </div>
+
+          <div class="two-col form-grid">
+            <label>
+              Catégorie
+              <select id="entryCategory" required></select>
+            </label>
+            <label>
+              Calories
+              <input id="entryCalories" type="number" min="0" step="1" required />
+              <span class="hint">Prérempli à partir du repas. Modifiable pour l'entrée réelle.</span>
+            </label>
+          </div>
+
+          <label>
+            Personnes
+            <div class="checkbox-list" id="entryPeople"></div>
+          </label>
+
+          <label>
+            Notes
+            <textarea id="entryNotes" placeholder="Ex. sauce maison, portion plus petite, restaurant..."></textarea>
+          </label>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="ghost-btn" data-close="entryModal">Annuler</button>
+        <button class="primary-btn" id="btnSaveEntry">Enregistrer</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="filterModal">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="filterModalTitle">
+      <div class="modal-header">
+        <div class="modal-title" id="filterModalTitle">Filtres</div>
+        <button class="icon-btn" data-close="filterModal" aria-label="Fermer"><span data-icon="x"></span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="two-col form-grid">
+            <label>
+              Période
+              <select id="filterPeriod">
+                <option value="all">Toutes les dates</option>
+                <option value="today">Aujourd'hui</option>
+                <option value="7">7 derniers jours</option>
+                <option value="30">30 derniers jours</option>
+                <option value="90">90 derniers jours</option>
+                <option value="custom">Personnalisée</option>
+              </select>
+            </label>
+            <label>
+              Catégorie
+              <select id="filterCategory"></select>
+            </label>
+          </div>
+
+          <div class="two-col form-grid" id="customPeriodFields">
+            <label>
+              Date de début
+              <input id="filterStart" type="date" />
+            </label>
+            <label>
+              Date de fin
+              <input id="filterEnd" type="date" />
+            </label>
+          </div>
+
+          <div class="two-col form-grid">
+            <label>
+              Personne
+              <select id="filterPerson"></select>
+            </label>
+            <label>
+              Repas
+              <select id="filterMeal"></select>
+            </label>
+          </div>
+
+          <div class="two-col form-grid">
+            <label>
+              Calories minimum
+              <input id="filterCalMin" type="number" min="0" step="1" />
+            </label>
+            <label>
+              Calories maximum
+              <input id="filterCalMax" type="number" min="0" step="1" />
+            </label>
+          </div>
+
+          <label>
+            Notes contenant
+            <input id="filterNotes" type="search" placeholder="Ex. resto, maison..." />
+          </label>
+
+          <label>
+            Afficher seulement les repas partagés
+            <select id="filterShared">
+              <option value="all">Tous</option>
+              <option value="shared">Seulement avec plusieurs personnes</option>
+              <option value="solo">Seulement une personne</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="danger-btn" id="btnResetFilters">Réinitialiser</button>
+        <button class="primary-btn" id="btnApplyFilters">Appliquer</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="manageModal">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="manageModalTitle">
+      <div class="modal-header">
+        <div class="modal-title" id="manageModalTitle">Gestion</div>
+        <button class="icon-btn" data-close="manageModal" aria-label="Fermer"><span data-icon="x"></span></button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab active" data-tab="people">Personnes</button>
+          <button class="tab" data-tab="meals">Repas</button>
+          <button class="tab" data-tab="categories">Catégories</button>
+        </div>
+
+        <section id="tabPeople" class="manage-tab">
+          <form class="form-grid" id="personForm">
+            <input type="hidden" id="personId" />
+            <div class="two-col form-grid">
+              <label>
+                Nom
+                <input id="personName" required placeholder="Ex. Yannick" />
+              </label>
+              <label>
+                Statut
+                <select id="personActive">
+                  <option value="true">Actif</option>
+                  <option value="false">Inactif</option>
+                </select>
+              </label>
+            </div>
+            <button class="primary-btn" type="submit" id="btnSavePerson">Enregistrer la personne</button>
+          </form>
+          <div class="manage-list" id="peopleList"></div>
+        </section>
+
+        <section id="tabMeals" class="manage-tab hidden">
+          <form class="form-grid" id="mealForm">
+            <input type="hidden" id="mealId" />
+            <label>
+              Nom du repas
+              <input id="mealName" required placeholder="Ex. Spaghetti sauce viande" />
+            </label>
+            <label>
+              Description
+              <textarea id="mealDescription" placeholder="Ex. sauce tomate, boeuf haché, pâtes blanches, parmesan..."></textarea>
+            </label>
+            <div class="two-col form-grid">
+              <label>
+                Catégorie par défaut
+                <select id="mealCategory" required></select>
+              </label>
+              <label>
+                Calories par défaut
+                <input id="mealCalories" type="number" min="0" step="1" required />
+              </label>
+            </div>
+            <div class="two-col form-grid">
+              <label>
+                Favori
+                <select id="mealFavorite">
+                  <option value="false">Non</option>
+                  <option value="true">Oui</option>
+                </select>
+              </label>
+              <label>
+                Statut
+                <select id="mealActive">
+                  <option value="true">Actif</option>
+                  <option value="false">Inactif</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              Tags
+              <input id="mealTags" placeholder="Ex. maison, rapide, resto" />
+              <span class="hint">Séparer les tags par des virgules.</span>
+            </label>
+            <button class="primary-btn" type="submit" id="btnSaveMeal">Enregistrer le repas</button>
+          </form>
+          <div class="manage-list" id="mealsList"></div>
+        </section>
+
+        <section id="tabCategories" class="manage-tab hidden">
+          <form class="form-grid" id="categoryForm">
+            <input type="hidden" id="categoryId" />
+            <div class="two-col form-grid">
+              <label>
+                Nom
+                <input id="categoryName" required placeholder="Ex. Dessert" />
+              </label>
+              <label>
+                Statut
+                <select id="categoryActive">
+                  <option value="true">Actif</option>
+                  <option value="false">Inactif</option>
+                </select>
+              </label>
+            </div>
+            <button class="primary-btn" type="submit" id="btnSaveCategory">Enregistrer la catégorie</button>
+          </form>
+          <div class="manage-list" id="categoriesList"></div>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button class="ghost-btn" data-close="manageModal">Fermer</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="trendModal">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="trendModalTitle">
+      <div class="modal-header">
+        <div class="modal-title" id="trendModalTitle">Tendances</div>
+        <button class="icon-btn" data-close="trendModal" aria-label="Fermer"><span data-icon="x"></span></button>
+      </div>
+      <div class="modal-body">
+        <div class="trend-grid" id="trendContent"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="ghost-btn" data-close="trendModal">Fermer</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    "use strict";
+
+    const DB_NAME = "repas-pwa-db";
+    const DB_VERSION = 1;
+    const BACKUP_VERSION = 1;
+
+    const stores = {
+      people: "people",
+      categories: "categories",
+      meals: "meals",
+      entries: "entries"
+    };
+
+    const state = {
+      db: null,
+      people: [],
+      categories: [],
+      meals: [],
+      entries: [],
+      filters: {
+        period: "all",
+        start: "",
+        end: "",
+        personId: "all",
+        mealId: "all",
+        categoryId: "all",
+        calMin: "",
+        calMax: "",
+        notes: "",
+        shared: "all",
+        search: ""
+      },
+      editingEntryId: null,
+      deferredInstallPrompt: null
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    const icons = {
+      plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>',
+      filter: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      chart: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V9M12 19V5M19 19v-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      backup: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 17v2h14v-2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      restore: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20V10m0 0 4 4m-4-4-4 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 7V5h14v2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      settings: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" stroke="currentColor" stroke-width="2"/><path d="M19 12a7.9 7.9 0 0 0-.08-1.1l2.02-1.55-2-3.46-2.39.96a8.24 8.24 0 0 0-1.9-1.1L14.3 3h-4.6l-.36 2.75a8.24 8.24 0 0 0-1.9 1.1l-2.39-.96-2 3.46 2.02 1.55a7.9 7.9 0 0 0 0 2.2l-2.02 1.55 2 3.46 2.39-.96c.58.46 1.22.83 1.9 1.1L9.7 21h4.6l.36-2.75a8.24 8.24 0 0 0 1.9-1.1l2.39.96 2-3.46-2.02-1.55c.05-.36.08-.73.08-1.1Z" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round"/></svg>',
+      x: '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>',
+      download: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v10m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 20h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+      edit: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+      trash: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 7h14M10 11v6M14 11v6M8 7l1-3h6l1 3M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      duplicate: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 8h11v11H8z" stroke="currentColor" stroke-width="2"/><path d="M5 16H4V5h11v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    };
+
+    function initIcons() {
+      document.querySelectorAll("[data-icon]").forEach(node => {
+        node.innerHTML = icons[node.dataset.icon] || "";
+      });
+    }
+
+    function uid(prefix) {
+      if (crypto && crypto.randomUUID) return prefix + "_" + crypto.randomUUID();
+      return prefix + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+
+    function nowIso() {
+      return new Date().toISOString();
+    }
+
+    function localDateTimeValue(date = new Date()) {
+      const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return d.toISOString().slice(0, 16);
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return "Date inconnue";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "Date invalide";
+      return new Intl.DateTimeFormat("fr-CA", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(d);
+    }
+
+    function formatDateOnly(iso) {
+      if (!iso) return "Date inconnue";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "Date invalide";
+      return new Intl.DateTimeFormat("fr-CA", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }).format(d);
+    }
+
+    function numberFmt(value) {
+      return new Intl.NumberFormat("fr-CA", { maximumFractionDigits: 0 }).format(value || 0);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function normalize(value) {
+      return String(value ?? "").toLocaleLowerCase("fr-CA").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function toast(message) {
+      const node = $("toast");
+      node.textContent = message;
+      node.classList.add("show");
+      clearTimeout(node._timer);
+      node._timer = setTimeout(() => node.classList.remove("show"), 2600);
+    }
+
+    function openModal(id) {
+      $(id).classList.add("open");
+    }
+
+    function closeModal(id) {
+      $(id).classList.remove("open");
+    }
+
+    function tx(storeName, mode = "readonly") {
+      return state.db.transaction(storeName, mode).objectStore(storeName);
+    }
+
+    function requestToPromise(req) {
+      return new Promise((resolve, reject) => {
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+        req.onupgradeneeded = (event) => {
+          const db = event.target.result;
+
+          if (!db.objectStoreNames.contains(stores.people)) {
+            db.createObjectStore(stores.people, { keyPath: "id" });
+          }
+
+          if (!db.objectStoreNames.contains(stores.categories)) {
+            db.createObjectStore(stores.categories, { keyPath: "id" });
+          }
+
+          if (!db.objectStoreNames.contains(stores.meals)) {
+            db.createObjectStore(stores.meals, { keyPath: "id" });
+          }
+
+          if (!db.objectStoreNames.contains(stores.entries)) {
+            const entryStore = db.createObjectStore(stores.entries, { keyPath: "id" });
+            entryStore.createIndex("dateRepas", "dateRepas", { unique: false });
+            entryStore.createIndex("dateInscription", "dateInscription", { unique: false });
+          }
+        };
+
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function getAll(storeName) {
+      return requestToPromise(tx(storeName).getAll());
+    }
+
+    async function put(storeName, value) {
+      return requestToPromise(tx(storeName, "readwrite").put(value));
+    }
+
+    async function remove(storeName, id) {
+      return requestToPromise(tx(storeName, "readwrite").delete(id));
+    }
+
+    async function clearStore(storeName) {
+      return requestToPromise(tx(storeName, "readwrite").clear());
+    }
+
+    async function loadData() {
+      state.people = await getAll(stores.people);
+      state.categories = await getAll(stores.categories);
+      state.meals = await getAll(stores.meals);
+      state.entries = await getAll(stores.entries);
+
+      state.people.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+      state.categories.sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+      state.meals.sort((a, b) => {
+        if (!!b.favori !== !!a.favori) return Number(!!b.favori) - Number(!!a.favori);
+        return a.nom.localeCompare(b.nom, "fr");
+      });
+      state.entries.sort((a, b) => new Date(b.dateRepas) - new Date(a.dateRepas));
+    }
+
+    async function seedIfEmpty() {
+      const [people, categories, meals] = await Promise.all([
+        getAll(stores.people),
+        getAll(stores.categories),
+        getAll(stores.meals)
+      ]);
+
+      if (categories.length === 0) {
+        const defaults = [
+          { id: "cat_entree", nom: "Entrée", actif: true, dateCreation: nowIso() },
+          { id: "cat_principal", nom: "Plat principal", actif: true, dateCreation: nowIso() },
+          { id: "cat_dessert", nom: "Dessert", actif: true, dateCreation: nowIso() },
+          { id: "cat_collation", nom: "Collation", actif: true, dateCreation: nowIso() },
+          { id: "cat_boisson", nom: "Boisson", actif: true, dateCreation: nowIso() },
+          { id: "cat_autre", nom: "Autre", actif: true, dateCreation: nowIso() }
+        ];
+        for (const item of defaults) await put(stores.categories, item);
+      }
+
+      if (people.length === 0) {
+        await put(stores.people, {
+          id: uid("p"),
+          nom: "Yannick",
+          actif: true,
+          dateCreation: nowIso()
+        });
+      }
+
+      if (meals.length === 0) {
+        const defaults = [
+          {
+            id: uid("r"),
+            nom: "Spaghetti sauce viande",
+            description: "Pâtes avec sauce tomate et viande.",
+            categorieId: "cat_principal",
+            caloriesDefaut: 720,
+            actif: true,
+            favori: true,
+            tags: ["maison"],
+            notes: "",
+            dateCreation: nowIso()
+          },
+          {
+            id: uid("r"),
+            nom: "Yogourt et fruits",
+            description: "Yogourt avec fruits.",
+            categorieId: "cat_collation",
+            caloriesDefaut: 220,
+            actif: true,
+            favori: false,
+            tags: ["rapide"],
+            notes: "",
+            dateCreation: nowIso()
+          }
+        ];
+        for (const item of defaults) await put(stores.meals, item);
+      }
+    }
+
+    function getPerson(id) {
+      return state.people.find(p => p.id === id);
+    }
+
+    function getMeal(id) {
+      return state.meals.find(m => m.id === id);
+    }
+
+    function getCategory(id) {
+      return state.categories.find(c => c.id === id);
+    }
+
+    function activeItems(items) {
+      return items.filter(item => item.actif !== false);
+    }
+
+    function optionHtml(items, selectedId = "", includeAllLabel = "") {
+      let html = includeAllLabel ? `<option value="all">${escapeHtml(includeAllLabel)}</option>` : "";
+      html += items.map(item => `<option value="${escapeHtml(item.id)}" ${item.id === selectedId ? "selected" : ""}>${escapeHtml(item.nom)}</option>`).join("");
+      return html;
+    }
+
+    function fillSelects() {
+      const activeCategories = activeItems(state.categories);
+      const activeMeals = activeItems(state.meals);
+
+      $("entryMeal").innerHTML = optionHtml(activeMeals);
+      $("entryCategory").innerHTML = optionHtml(activeCategories);
+
+      $("mealCategory").innerHTML = optionHtml(activeCategories);
+
+      $("filterCategory").innerHTML = optionHtml(state.categories, state.filters.categoryId, "Toutes les catégories");
+      $("filterPerson").innerHTML = optionHtml(state.people, state.filters.personId, "Toutes les personnes");
+      $("filterMeal").innerHTML = optionHtml(state.meals, state.filters.mealId, "Tous les repas");
+
+      const peopleHtml = activeItems(state.people).map(person => `
+        <label class="check-row">
+          <input type="checkbox" value="${escapeHtml(person.id)}" />
+          <span>${escapeHtml(person.nom)}</span>
+        </label>
+      `).join("");
+
+      $("entryPeople").innerHTML = peopleHtml || `<div class="hint">Aucune personne active. Ajoute une personne dans la gestion.</div>`;
+    }
+
+    function renderEntries() {
+      const filtered = getFilteredEntries();
+      const list = $("entryList");
+
+      renderStats(filtered);
+      renderFilterChips();
+
+      $("subtitle").textContent = filtered.length === state.entries.length
+        ? "Historique local sur cet appareil"
+        : `${filtered.length} résultat(s) filtré(s) sur ${state.entries.length}`;
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty">
+            <strong>Aucune entrée trouvée.</strong><br />
+            Ajoute un repas ou ajuste les filtres.
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = filtered.map(entry => {
+        const meal = getMeal(entry.repasId);
+        const category = getCategory(entry.categorieId);
+        const people = (entry.personneIds || []).map(getPerson).filter(Boolean);
+        const peopleNames = people.map(p => p.nom).join(", ") || "Aucune personne";
+        const mealName = meal?.nom || "Repas supprimé";
+        const mealDescription = meal?.description ? `<div class="entry-meta">${escapeHtml(meal.description)}</div>` : "";
+        const notes = entry.notes ? `<div class="entry-notes">${escapeHtml(entry.notes)}</div>` : "";
+        const portions = entry.portions ? Number(entry.portions) : 1;
+
+        return `
+          <article class="entry-card">
+            <div class="entry-head">
+              <div>
+                <h2 class="entry-title">${escapeHtml(mealName)}</h2>
+                ${mealDescription}
+                <div class="entry-meta">
+                  Repas : ${escapeHtml(formatDateTime(entry.dateRepas))}<br />
+                  Inscrit : ${escapeHtml(formatDateTime(entry.dateInscription))}
+                </div>
+              </div>
+              <span class="pill accent">${numberFmt(entry.calories)} cal</span>
+            </div>
+
+            <div class="entry-kpis">
+              <span class="pill">${escapeHtml(category?.nom || "Catégorie inconnue")}</span>
+              <span class="pill success">${escapeHtml(peopleNames)}</span>
+              <span class="pill">${numberFmt(portions)} portion(s)</span>
+            </div>
+
+            ${notes}
+
+            <div class="entry-actions">
+              <button class="small-btn" onclick="duplicateEntry('${escapeHtml(entry.id)}')"><span data-icon="duplicate"></span> Dupliquer</button>
+              <button class="small-btn" onclick="editEntry('${escapeHtml(entry.id)}')"><span data-icon="edit"></span> Modifier</button>
+              <button class="small-btn danger-text" onclick="deleteEntry('${escapeHtml(entry.id)}')"><span data-icon="trash"></span> Supprimer</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      initIcons();
+    }
+
+    function getFilteredEntries() {
+      const f = state.filters;
+      let entries = [...state.entries];
+
+      entries = entries.filter(entry => {
+        const meal = getMeal(entry.repasId);
+        const category = getCategory(entry.categorieId);
+        const people = (entry.personneIds || []).map(getPerson).filter(Boolean);
+        const entryDate = new Date(entry.dateRepas);
+
+        if (f.search) {
+          const haystack = normalize([
+            meal?.nom,
+            meal?.description,
+            category?.nom,
+            people.map(p => p.nom).join(" "),
+            entry.notes
+          ].join(" "));
+          if (!haystack.includes(normalize(f.search))) return false;
+        }
+
+        if (f.period !== "all") {
+          const now = new Date();
+          let start = null;
+          let end = null;
+
+          if (f.period === "today") {
+            start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+          } else if (f.period === "custom") {
+            if (f.start) start = new Date(f.start + "T00:00:00");
+            if (f.end) end = new Date(f.end + "T23:59:59");
+          } else {
+            start = new Date();
+            start.setDate(start.getDate() - Number(f.period));
+          }
+
+          if (start && entryDate < start) return false;
+          if (end && entryDate > end) return false;
+        }
+
+        if (f.personId !== "all" && !(entry.personneIds || []).includes(f.personId)) return false;
+        if (f.mealId !== "all" && entry.repasId !== f.mealId) return false;
+        if (f.categoryId !== "all" && entry.categorieId !== f.categoryId) return false;
+
+        if (f.calMin !== "" && Number(entry.calories) < Number(f.calMin)) return false;
+        if (f.calMax !== "" && Number(entry.calories) > Number(f.calMax)) return false;
+
+        if (f.notes && !normalize(entry.notes).includes(normalize(f.notes))) return false;
+
+        if (f.shared === "shared" && (entry.personneIds || []).length < 2) return false;
+        if (f.shared === "solo" && (entry.personneIds || []).length !== 1) return false;
+
+        return true;
+      });
+
+      return entries.sort((a, b) => new Date(b.dateRepas) - new Date(a.dateRepas));
+    }
+
+    function renderStats(entries) {
+      const totalEntries = entries.length;
+      const totalCalories = entries.reduce((sum, entry) => sum + Number(entry.calories || 0), 0);
+      const avgCalories = totalEntries ? Math.round(totalCalories / totalEntries) : 0;
+
+      $("statEntries").textContent = numberFmt(totalEntries);
+      $("statCalories").textContent = numberFmt(totalCalories);
+      $("statAvg").textContent = numberFmt(avgCalories);
+    }
+
+    function renderFilterChips() {
+      const f = state.filters;
+      const chips = [];
+
+      if (f.search) chips.push(`Recherche : ${f.search}`);
+      if (f.period !== "all") chips.push(`Période : ${periodLabel(f.period)}`);
+      if (f.personId !== "all") chips.push(`Personne : ${getPerson(f.personId)?.nom || "Inconnue"}`);
+      if (f.mealId !== "all") chips.push(`Repas : ${getMeal(f.mealId)?.nom || "Inconnu"}`);
+      if (f.categoryId !== "all") chips.push(`Catégorie : ${getCategory(f.categoryId)?.nom || "Inconnue"}`);
+      if (f.calMin !== "") chips.push(`Calories min : ${f.calMin}`);
+      if (f.calMax !== "") chips.push(`Calories max : ${f.calMax}`);
+      if (f.notes) chips.push(`Notes : ${f.notes}`);
+      if (f.shared !== "all") chips.push(f.shared === "shared" ? "Repas partagés" : "Repas solo");
+
+      $("filterChips").innerHTML = chips.length
+        ? chips.map(chip => `<span class="chip active">${escapeHtml(chip)}</span>`).join("")
+        : `<span class="chip">Aucun filtre actif</span>`;
+    }
+
+    function periodLabel(value) {
+      const labels = {
+        today: "Aujourd'hui",
+        "7": "7 jours",
+        "30": "30 jours",
+        "90": "90 jours",
+        custom: "Personnalisée",
+        all: "Toutes"
+      };
+      return labels[value] || value;
+    }
+
+    function newEntry() {
+      state.editingEntryId = null;
+      $("entryModalTitle").textContent = "Ajouter une entrée";
+      $("entryForm").reset();
+      $("entryId").value = "";
+      $("entryMealDate").value = localDateTimeValue();
+      $("entryPortions").value = "1";
+
+      fillSelects();
+
+      const firstMeal = activeItems(state.meals)[0];
+      if (firstMeal) {
+        $("entryMeal").value = firstMeal.id;
+        applyMealDefaults(firstMeal.id, true);
+      }
+
+      document.querySelectorAll("#entryPeople input[type='checkbox']").forEach(cb => cb.checked = false);
+
+      openModal("entryModal");
+    }
+
+    function applyMealDefaults(mealId, force = false) {
+      const meal = getMeal(mealId);
+      if (!meal) return;
+
+      if (force || !$("entryCategory").value) $("entryCategory").value = meal.categorieId || "";
+      const portions = Number($("entryPortions").value || 1);
+      const calculatedCalories = Math.round(Number(meal.caloriesDefaut || 0) * portions);
+      if (force || !$("entryCalories").value) $("entryCalories").value = calculatedCalories;
+    }
+
+    function recalcCaloriesFromPortions() {
+      const meal = getMeal($("entryMeal").value);
+      if (!meal) return;
+      const portions = Number($("entryPortions").value || 1);
+      $("entryCalories").value = Math.round(Number(meal.caloriesDefaut || 0) * portions);
+    }
+
+    async function saveEntry() {
+      const mealId = $("entryMeal").value;
+      const categoryId = $("entryCategory").value;
+      const selectedPeople = [...document.querySelectorAll("#entryPeople input[type='checkbox']:checked")].map(cb => cb.value);
+      const mealDateValue = $("entryMealDate").value;
+      const calories = Number($("entryCalories").value);
+      const portions = Number($("entryPortions").value || 1);
+
+      if (!mealId) return toast("Le repas est obligatoire.");
+      if (!categoryId) return toast("La catégorie est obligatoire.");
+      if (!mealDateValue) return toast("La date du repas est obligatoire.");
+      if (selectedPeople.length === 0) return toast("Sélectionne au moins une personne.");
+      if (!Number.isFinite(calories) || calories < 0) return toast("Les calories doivent être un nombre valide.");
+      if (!Number.isFinite(portions) || portions <= 0) return toast("Les portions doivent être supérieures à zéro.");
+
+      const id = $("entryId").value || uid("e");
+      const existing = state.entries.find(e => e.id === id);
+
+      const entry = {
+        id,
+        dateInscription: existing?.dateInscription || nowIso(),
+        dateModification: nowIso(),
+        dateRepas: new Date(mealDateValue).toISOString(),
+        repasId: mealId,
+        personneIds: selectedPeople,
+        categorieId: categoryId,
+        calories,
+        portions,
+        notes: $("entryNotes").value.trim()
+      };
+
+      await put(stores.entries, entry);
+      await refreshAll();
+      closeModal("entryModal");
+      toast("Entrée enregistrée.");
+    }
+
+    window.editEntry = function(id) {
+      const entry = state.entries.find(e => e.id === id);
+      if (!entry) return;
+
+      state.editingEntryId = id;
+      fillSelects();
+
+      $("entryModalTitle").textContent = "Modifier une entrée";
+      $("entryId").value = entry.id;
+      $("entryMeal").value = entry.repasId;
+      $("entryMealDate").value = localDateTimeValue(new Date(entry.dateRepas));
+      $("entryCategory").value = entry.categorieId;
+      $("entryCalories").value = entry.calories;
+      $("entryPortions").value = entry.portions || 1;
+      $("entryNotes").value = entry.notes || "";
+
+      document.querySelectorAll("#entryPeople input[type='checkbox']").forEach(cb => {
+        cb.checked = (entry.personneIds || []).includes(cb.value);
+      });
+
+      openModal("entryModal");
+    };
+
+    window.duplicateEntry = async function(id) {
+      const entry = state.entries.find(e => e.id === id);
+      if (!entry) return;
+
+      const duplicated = {
+        ...entry,
+        id: uid("e"),
+        dateInscription: nowIso(),
+        dateModification: nowIso(),
+        dateRepas: new Date().toISOString()
+      };
+
+      await put(stores.entries, duplicated);
+      await refreshAll();
+      toast("Entrée dupliquée avec la date courante.");
+    };
+
+    window.deleteEntry = async function(id) {
+      const entry = state.entries.find(e => e.id === id);
+      if (!entry) return;
+      const meal = getMeal(entry.repasId);
+
+      if (!confirm(`Supprimer cette entrée${meal ? " : " + meal.nom : ""} ?`)) return;
+
+      await remove(stores.entries, id);
+      await refreshAll();
+      toast("Entrée supprimée.");
+    };
+
+    async function savePerson(event) {
+      event.preventDefault();
+      const id = $("personId").value || uid("p");
+      const item = {
+        id,
+        nom: $("personName").value.trim(),
+        actif: $("personActive").value === "true",
+        dateCreation: state.people.find(p => p.id === id)?.dateCreation || nowIso(),
+        dateModification: nowIso()
+      };
+
+      if (!item.nom) return toast("Le nom est obligatoire.");
+
+      await put(stores.people, item);
+      $("personForm").reset();
+      $("personId").value = "";
+      await refreshAll();
+      toast("Personne enregistrée.");
+    }
+
+    async function saveMeal(event) {
+      event.preventDefault();
+      const id = $("mealId").value || uid("r");
+      const item = {
+        id,
+        nom: $("mealName").value.trim(),
+        description: $("mealDescription").value.trim(),
+        categorieId: $("mealCategory").value,
+        caloriesDefaut: Number($("mealCalories").value || 0),
+        actif: $("mealActive").value === "true",
+        favori: $("mealFavorite").value === "true",
+        tags: $("mealTags").value.split(",").map(t => t.trim()).filter(Boolean),
+        notes: "",
+        dateCreation: state.meals.find(m => m.id === id)?.dateCreation || nowIso(),
+        dateModification: nowIso()
+      };
+
+      if (!item.nom) return toast("Le nom du repas est obligatoire.");
+      if (!item.categorieId) return toast("La catégorie est obligatoire.");
+      if (!Number.isFinite(item.caloriesDefaut) || item.caloriesDefaut < 0) return toast("Les calories doivent être valides.");
+
+      await put(stores.meals, item);
+      $("mealForm").reset();
+      $("mealId").value = "";
+      await refreshAll();
+      toast("Repas enregistré.");
+    }
+
+    async function saveCategory(event) {
+      event.preventDefault();
+      const id = $("categoryId").value || uid("cat");
+      const item = {
+        id,
+        nom: $("categoryName").value.trim(),
+        actif: $("categoryActive").value === "true",
+        dateCreation: state.categories.find(c => c.id === id)?.dateCreation || nowIso(),
+        dateModification: nowIso()
+      };
+
+      if (!item.nom) return toast("Le nom de la catégorie est obligatoire.");
+
+      await put(stores.categories, item);
+      $("categoryForm").reset();
+      $("categoryId").value = "";
+      await refreshAll();
+      toast("Catégorie enregistrée.");
+    }
+
+    function renderManageLists() {
+      $("peopleList").innerHTML = state.people.map(person => `
+        <div class="manage-item">
+          <div>
+            <div class="manage-title">${escapeHtml(person.nom)}</div>
+            <div class="manage-sub">${person.actif === false ? "Inactif" : "Actif"}</div>
+          </div>
+          <div>
+            <button class="small-btn" onclick="editPerson('${escapeHtml(person.id)}')"><span data-icon="edit"></span></button>
+          </div>
+        </div>
+      `).join("") || `<div class="empty">Aucune personne.</div>`;
+
+      $("mealsList").innerHTML = state.meals.map(meal => {
+        const category = getCategory(meal.categorieId);
+        const tags = (meal.tags || []).join(", ");
+        return `
+          <div class="manage-item">
+            <div>
+              <div class="manage-title">${escapeHtml(meal.nom)}${meal.favori ? " ★" : ""}</div>
+              <div class="manage-sub">
+                ${escapeHtml(category?.nom || "Catégorie inconnue")} · ${numberFmt(meal.caloriesDefaut)} cal · ${meal.actif === false ? "Inactif" : "Actif"}<br />
+                ${meal.description ? escapeHtml(meal.description) + "<br />" : ""}
+                ${tags ? "Tags : " + escapeHtml(tags) : ""}
+              </div>
+            </div>
+            <div>
+              <button class="small-btn" onclick="editMeal('${escapeHtml(meal.id)}')"><span data-icon="edit"></span></button>
+            </div>
+          </div>
+        `;
+      }).join("") || `<div class="empty">Aucun repas.</div>`;
+
+      $("categoriesList").innerHTML = state.categories.map(category => `
+        <div class="manage-item">
+          <div>
+            <div class="manage-title">${escapeHtml(category.nom)}</div>
+            <div class="manage-sub">${category.actif === false ? "Inactif" : "Actif"}</div>
+          </div>
+          <div>
+            <button class="small-btn" onclick="editCategory('${escapeHtml(category.id)}')"><span data-icon="edit"></span></button>
+          </div>
+        </div>
+      `).join("") || `<div class="empty">Aucune catégorie.</div>`;
+
+      initIcons();
+    }
+
+    window.editPerson = function(id) {
+      const item = state.people.find(p => p.id === id);
+      if (!item) return;
+      $("personId").value = item.id;
+      $("personName").value = item.nom;
+      $("personActive").value = String(item.actif !== false);
+      toast("Personne chargée pour modification.");
+    };
+
+    window.editMeal = function(id) {
+      const item = state.meals.find(m => m.id === id);
+      if (!item) return;
+      $("mealId").value = item.id;
+      $("mealName").value = item.nom;
+      $("mealDescription").value = item.description || "";
+      $("mealCategory").value = item.categorieId;
+      $("mealCalories").value = item.caloriesDefaut || 0;
+      $("mealFavorite").value = String(!!item.favori);
+      $("mealActive").value = String(item.actif !== false);
+      $("mealTags").value = (item.tags || []).join(", ");
+      toast("Repas chargé pour modification.");
+    };
+
+    window.editCategory = function(id) {
+      const item = state.categories.find(c => c.id === id);
+      if (!item) return;
+      $("categoryId").value = item.id;
+      $("categoryName").value = item.nom;
+      $("categoryActive").value = String(item.actif !== false);
+      toast("Catégorie chargée pour modification.");
+    };
+
+    function hydrateFilterModal() {
+      $("filterPeriod").value = state.filters.period;
+      $("filterStart").value = state.filters.start;
+      $("filterEnd").value = state.filters.end;
+      $("filterPerson").value = state.filters.personId;
+      $("filterMeal").value = state.filters.mealId;
+      $("filterCategory").value = state.filters.categoryId;
+      $("filterCalMin").value = state.filters.calMin;
+      $("filterCalMax").value = state.filters.calMax;
+      $("filterNotes").value = state.filters.notes;
+      $("filterShared").value = state.filters.shared;
+      toggleCustomPeriod();
+    }
+
+    function applyFilters() {
+      state.filters.period = $("filterPeriod").value;
+      state.filters.start = $("filterStart").value;
+      state.filters.end = $("filterEnd").value;
+      state.filters.personId = $("filterPerson").value;
+      state.filters.mealId = $("filterMeal").value;
+      state.filters.categoryId = $("filterCategory").value;
+      state.filters.calMin = $("filterCalMin").value;
+      state.filters.calMax = $("filterCalMax").value;
+      state.filters.notes = $("filterNotes").value.trim();
+      state.filters.shared = $("filterShared").value;
+      renderEntries();
+      closeModal("filterModal");
+    }
+
+    function resetFilters() {
+      state.filters = {
+        period: "all",
+        start: "",
+        end: "",
+        personId: "all",
+        mealId: "all",
+        categoryId: "all",
+        calMin: "",
+        calMax: "",
+        notes: "",
+        shared: "all",
+        search: ""
+      };
+      $("searchInput").value = "";
+      hydrateFilterModal();
+      renderEntries();
+      closeModal("filterModal");
+      toast("Filtres réinitialisés.");
+    }
+
+    function toggleCustomPeriod() {
+      $("customPeriodFields").classList.toggle("hidden", $("filterPeriod").value !== "custom");
+    }
+
+    function buildTrends() {
+      const entries = getFilteredEntries();
+      const content = $("trendContent");
+
+      if (entries.length === 0) {
+        content.innerHTML = `<div class="empty">Aucune donnée disponible pour les tendances.</div>`;
+        return;
+      }
+
+      const totalCalories = entries.reduce((sum, e) => sum + Number(e.calories || 0), 0);
+      const avgCalories = Math.round(totalCalories / entries.length);
+      const mealCounts = countBy(entries, e => e.repasId);
+      const categoryCounts = countBy(entries, e => e.categorieId);
+      const dayCounts = countBy(entries, e => new Date(e.dateRepas).getDay());
+      const personMealCounts = {};
+
+      for (const entry of entries) {
+        for (const personId of entry.personneIds || []) {
+          personMealCounts[personId] ||= {};
+          personMealCounts[personId][entry.repasId] = (personMealCounts[personId][entry.repasId] || 0) + 1;
+        }
+      }
+
+      const topMeal = topFromCount(mealCounts);
+      const topCategory = topFromCount(categoryCounts);
+      const topDay = topFromCount(dayCounts);
+      const dayNames = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+
+      const favoriteByPerson = Object.entries(personMealCounts).map(([personId, counts]) => {
+        const top = topFromCount(counts);
+        return {
+          person: getPerson(personId)?.nom || "Personne inconnue",
+          meal: getMeal(top?.key)?.nom || "Repas inconnu",
+          count: top?.count || 0
+        };
+      }).sort((a, b) => a.person.localeCompare(b.person, "fr"));
+
+      const rareMeals = [...state.meals]
+        .map(meal => ({ meal, count: mealCounts[meal.id] || 0 }))
+        .filter(x => x.count > 0)
+        .sort((a, b) => a.count - b.count || a.meal.nom.localeCompare(b.meal.nom, "fr"))
+        .slice(0, 5);
+
+      const lastMealByName = [...entries].sort((a, b) => new Date(b.dateRepas) - new Date(a.dateRepas))[0];
+
+      content.innerHTML = `
+        ${trendCard("Période analysée", `${entries.length} entrée(s)`, `Selon les filtres actuellement appliqués.`)}
+        ${trendCard("Repas le plus fréquent", getMeal(topMeal?.key)?.nom || "Inconnu", `${topMeal?.count || 0} fois`)}
+        ${trendCard("Catégorie dominante", getCategory(topCategory?.key)?.nom || "Inconnue", `${topCategory?.count || 0} entrée(s)`)}
+        ${trendCard("Calories moyennes", `${numberFmt(avgCalories)} cal`, `${numberFmt(totalCalories)} calories au total`)}
+        ${trendCard("Jour le plus actif", dayNames[Number(topDay?.key)] || "Inconnu", `${topDay?.count || 0} entrée(s)`)}
+        ${trendCard("Dernier repas", getMeal(lastMealByName?.repasId)?.nom || "Inconnu", lastMealByName ? formatDateTime(lastMealByName.dateRepas) : "")}
+        <div class="trend-card">
+          <div class="trend-title">Repas préféré par personne</div>
+          <div class="trend-detail">
+            ${favoriteByPerson.length ? favoriteByPerson.map(x => `${escapeHtml(x.person)} : <strong>${escapeHtml(x.meal)}</strong> (${x.count} fois)`).join("<br />") : "Aucune personne."}
+          </div>
+        </div>
+        <div class="trend-card">
+          <div class="trend-title">Repas moins fréquents déjà mangés</div>
+          <div class="trend-detail">
+            ${rareMeals.length ? rareMeals.map(x => `${escapeHtml(x.meal.nom)} : ${x.count} fois`).join("<br />") : "Pas assez de données."}
+          </div>
+        </div>
+      `;
+    }
+
+    function countBy(items, keyFn) {
+      return items.reduce((acc, item) => {
+        const key = keyFn(item);
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+    }
+
+    function topFromCount(counts) {
+      return Object.entries(counts)
+        .map(([key, count]) => ({ key, count }))
+        .sort((a, b) => b.count - a.count)[0];
+    }
+
+    function trendCard(title, value, detail) {
+      return `
+        <div class="trend-card">
+          <div class="trend-title">${escapeHtml(title)}</div>
+          <div class="trend-value">${escapeHtml(value)}</div>
+          <div class="trend-detail">${escapeHtml(detail || "")}</div>
+        </div>
+      `;
+    }
+
+    async function backupData() {
+      await loadData();
+      const payload = {
+        app: "repas-pwa",
+        version: BACKUP_VERSION,
+        dateBackup: nowIso(),
+        data: {
+          people: state.people,
+          categories: state.categories,
+          meals: state.meals,
+          entries: state.entries
+        }
+      };
+
+      const text = JSON.stringify(payload, null, 2);
+      const blob = new Blob([text], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const stamp = new Date().toISOString().slice(0, 16).replaceAll(":", "").replace("T", "_");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `repas_backup_${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast("Backup généré.");
+    }
+
+    async function restoreData(file) {
+      if (!file) return;
+
+      const text = await file.text();
+      let payload;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        toast("Fichier JSON invalide.");
+        return;
+      }
+
+      if (payload?.app !== "repas-pwa" || !payload?.data) {
+        toast("Backup non reconnu.");
+        return;
+      }
+
+      if (!confirm("Restaurer ce backup va remplacer toutes les données locales. Continuer ?")) return;
+
+      await clearStore(stores.people);
+      await clearStore(stores.categories);
+      await clearStore(stores.meals);
+      await clearStore(stores.entries);
+
+      for (const item of payload.data.people || []) await put(stores.people, item);
+      for (const item of payload.data.categories || []) await put(stores.categories, item);
+      for (const item of payload.data.meals || []) await put(stores.meals, item);
+      for (const item of payload.data.entries || []) await put(stores.entries, item);
+
+      await refreshAll();
+      toast("Backup restauré.");
+    }
+
+    async function refreshAll() {
+      await loadData();
+      fillSelects();
+      renderManageLists();
+      renderEntries();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll("[data-close]").forEach(btn => {
+        btn.addEventListener("click", () => closeModal(btn.dataset.close));
+      });
+
+      document.querySelectorAll(".modal-backdrop").forEach(backdrop => {
+        backdrop.addEventListener("click", event => {
+          if (event.target === backdrop) backdrop.classList.remove("open");
+        });
+      });
+
+      $("btnAddEntry").addEventListener("click", newEntry);
+      $("btnSaveEntry").addEventListener("click", saveEntry);
+      $("entryMeal").addEventListener("change", () => applyMealDefaults($("entryMeal").value, true));
+      $("entryPortions").addEventListener("change", recalcCaloriesFromPortions);
+
+      $("btnFilters").addEventListener("click", () => {
+        fillSelects();
+        hydrateFilterModal();
+        openModal("filterModal");
+      });
+
+      $("filterPeriod").addEventListener("change", toggleCustomPeriod);
+      $("btnApplyFilters").addEventListener("click", applyFilters);
+      $("btnResetFilters").addEventListener("click", resetFilters);
+
+      $("searchInput").addEventListener("input", event => {
+        state.filters.search = event.target.value.trim();
+        renderEntries();
+      });
+
+      $("btnClearSearch").addEventListener("click", () => {
+        $("searchInput").value = "";
+        state.filters.search = "";
+        renderEntries();
+      });
+
+      $("btnManage").addEventListener("click", () => {
+        fillSelects();
+        renderManageLists();
+        openModal("manageModal");
+      });
+
+      $("personForm").addEventListener("submit", savePerson);
+      $("mealForm").addEventListener("submit", saveMeal);
+      $("categoryForm").addEventListener("submit", saveCategory);
+
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+          tab.classList.add("active");
+
+          document.querySelectorAll(".manage-tab").forEach(panel => panel.classList.add("hidden"));
+          $("tab" + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.remove("hidden");
+        });
+      });
+
+      $("btnTrends").addEventListener("click", () => {
+        buildTrends();
+        openModal("trendModal");
+      });
+
+      $("btnBackup").addEventListener("click", backupData);
+      $("btnRestore").addEventListener("click", () => $("restoreFile").click());
+      $("restoreFile").addEventListener("change", async event => {
+        await restoreData(event.target.files[0]);
+        event.target.value = "";
+      });
+
+      $("btnInstall").addEventListener("click", async () => {
+        if (!state.deferredInstallPrompt) {
+          toast("Sur Android, utilise aussi Ajouter à l'écran d'accueil dans Chrome.");
+          return;
+        }
+
+        state.deferredInstallPrompt.prompt();
+        await state.deferredInstallPrompt.userChoice;
+        state.deferredInstallPrompt = null;
+      });
+
+      window.addEventListener("beforeinstallprompt", event => {
+        event.preventDefault();
+        state.deferredInstallPrompt = event;
+        $("btnInstall").classList.remove("hidden");
+      });
+    }
+
+    async function registerServiceWorker() {
+      if (!("serviceWorker" in navigator)) return;
+      try {
+        await navigator.serviceWorker.register("service-worker.js");
+      } catch (error) {
+        console.warn("Service worker non enregistré", error);
+      }
+    }
+
+    async function init() {
+      initIcons();
+      bindEvents();
+
+      $("btnInstall").classList.add("hidden");
+
+      state.db = await openDb();
+      await seedIfEmpty();
+      await refreshAll();
+      await registerServiceWorker();
+    }
+
+    init().catch(error => {
+      console.error(error);
+      toast("Erreur au démarrage. Voir la console.");
+    });
+  </script>
+</body>
+</html>
