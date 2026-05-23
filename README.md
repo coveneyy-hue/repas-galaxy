@@ -48,9 +48,11 @@ Il faut donc utiliser régulièrement le bouton Backup.
 - Description pour chaque repas
 - Catégories pilotables
 - Calories par défaut par repas
-- Calories modifiables par entrée
+- Calories facultatives et modifiables par entrée
 - Portions
 - Notes
+- Note sur 10 par entrée
+- Notes sur 10 par incrément de 0.5
 - Filtres
 - Backup JSON
 - Restore JSON

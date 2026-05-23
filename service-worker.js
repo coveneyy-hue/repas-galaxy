@@ -1,11 +1,11 @@
-const CACHE_NAME = "repas-pwa-v2";
+const CACHE_NAME = "repas-pwa-v5";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png"
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", event => {
