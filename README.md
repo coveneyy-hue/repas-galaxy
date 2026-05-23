@@ -56,3 +56,35 @@ Il faut donc utiliser régulièrement le bouton Backup.
 - Restore JSON
 - Tendances
 - Mode hors ligne après chargement initial
+
+
+## Installation PWA Android
+
+Important : l'application ne peut pas s'installer comme vraie PWA si tu ouvres directement `index.html` depuis les fichiers du téléphone.
+
+Il faut l'ouvrir depuis une adresse HTTPS, par exemple :
+
+```text
+https://ton-utilisateur.github.io/repas-pwa/
+```
+
+Étapes recommandées sur Galaxy avec Chrome :
+
+1. Publier le dépôt avec GitHub Pages.
+2. Ouvrir l'URL HTTPS de GitHub Pages dans Chrome Android.
+3. Attendre que la page soit complètement chargée.
+4. Appuyer sur l'icône d'installation dans l'application, ou utiliser le menu Chrome `⋮`.
+5. Choisir `Installer l'application` ou `Ajouter à l'écran d'accueil`.
+
+Si Chrome affiche seulement `Ajouter à l'écran d'accueil`, l'icône sera quand même ajoutée. Selon la version de Chrome et l'état du manifest/service worker, le libellé peut varier.
+
+## Vérification rapide
+
+Ouvre ces URL dans Chrome Android :
+
+```text
+https://ton-utilisateur.github.io/repas-pwa/manifest.json
+https://ton-utilisateur.github.io/repas-pwa/service-worker.js
+```
+
+Les deux fichiers doivent s'afficher sans erreur 404.
