@@ -1988,7 +1988,13 @@
 
       $("btnInstall").addEventListener("click", async () => {
         if (!state.deferredInstallPrompt) {
-          toast("Sur Android, utilise aussi Ajouter à l'écran d'accueil dans Chrome.");
+          const isHttps = location.protocol === "https:" || location.hostname === "localhost";
+          if (!isHttps) {
+            toast("Installation PWA bloquée : ouvre l'application avec une adresse HTTPS, par exemple GitHub Pages.");
+            return;
+          }
+
+          toast("Dans Chrome Android : menu ⋮ puis Installer l'application ou Ajouter à l'écran d'accueil.");
           return;
         }
 
@@ -2017,12 +2023,16 @@
       initIcons();
       bindEvents();
 
-      $("btnInstall").classList.add("hidden");
+      // Bouton visible en permanence. Si Chrome ne déclenche pas beforeinstallprompt, on affiche les étapes manuelles.
 
       state.db = await openDb();
       await seedIfEmpty();
       await refreshAll();
       await registerServiceWorker();
+
+      if (location.protocol !== "https:" && location.hostname !== "localhost") {
+        $("subtitle").textContent = "Mode local : installation PWA bloquée sans HTTPS";
+      }
     }
 
     init().catch(error => {

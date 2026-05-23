@@ -1,8 +1,9 @@
-const CACHE_NAME = "repas-pwa-v1";
+const CACHE_NAME = "repas-pwa-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
@@ -10,7 +11,11 @@ const ASSETS = [
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
+      .then(cache => Promise.all(
+        ASSETS.map(asset => cache.add(asset).catch(error => {
+          console.warn("Asset non mis en cache", asset, error);
+        }))
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -25,12 +30,16 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== location.origin) return;
 
   event.respondWith(
     caches.match(event.request).then(cached => {
       if (cached) return cached;
 
       return fetch(event.request).then(response => {
+        if (!response || response.status !== 200) return response;
+
         const copy = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         return response;
